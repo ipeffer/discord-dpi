@@ -111,11 +111,11 @@ pub fn build_ipv4_tcp_packet(
         src_port,
         dst_port,
         sequence,
-        acknowledgment,
+        65_535,
     );
 
     if ack {
-        builder = builder.ack();
+        builder = builder.ack(acknowledgment);
     }
     if psh {
         builder = builder.psh();
