@@ -1,0 +1,19 @@
+# Discord domains for DPI filtering (subdomains included)
+discord.com
+discord.gg
+discord.media
+discordapp.com
+discordapp.net
+discordcdn.com
+discord-activities.com
+discordactivities.com
+discordstatus.com
+discord.co
+discord.app
+discord.dev
+discord.new
+discord.gift
+discord.gifts
+discord.store
+discord.design
+dis.gd

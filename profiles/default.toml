@@ -1,0 +1,13 @@
+[name]
+id = "default"
+description = "Base strategy for Discord TLS gateway and voice UDP"
+
+[[stages]]
+protocol = "tcp"
+ports = ["443"]
+desync = ["multisplit", "fake"]
+
+[[stages]]
+protocol = "udp"
+ports = ["19294-19344", "50000-50100"]
+desync = ["fake"]

@@ -1,0 +1,1 @@
+# Optional Discord IP ranges (CIDR). Populated later by automation.
