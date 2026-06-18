@@ -45,6 +45,31 @@ Release binary:
 
 Stop capture with `Ctrl+C`.
 
+## How desync works
+
+Outbound TCP packets to Discord (port 443, SNI in `lists/discord-domains.txt`) are inspected in the WinDivert capture loop. When the payload is a TLS **ClientHello**, the engine may rewrite traffic before reinjecting it:
+
+| Strategy | Effect |
+|----------|--------|
+| `fake` | Sends one or more decoy copies of the ClientHello with a low TTL so they expire before the ISP DPI sees the real segment. |
+| `multisplit` | Splits the ClientHello into two TCP segments (default at byte 1) so DPI reassembly misses the full handshake. |
+
+Configure strategies in `profiles/default.toml`:
+
+```toml
+[[stages]]
+protocol = "tcp"
+ports = ["443"]
+desync = ["fake", "multisplit"]
+
+[stages.desync_params]
+split_pos = 1
+fake_ttl = 2
+fake_repeats = 3
+```
+
+UDP voice traffic (ports 19294–19344, 50000–50100) is captured but not yet desynced — planned for Phase 3.
+
 ## Goals
 
 - Transparent local bypass without VPN or proxy
