@@ -134,7 +134,7 @@ pub fn is_elevated() -> bool {
     }
 
     const TOKEN_QUERY: u32 = 0x0008;
-    const TOKEN_ELEVATION: i32 = 20;
+    const TOKEN_ELEVATION: u32 = 20;
 
     #[repr(C)]
     struct TokenElevation {

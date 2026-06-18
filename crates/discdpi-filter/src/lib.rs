@@ -13,6 +13,7 @@ pub use windivert::{
 #[derive(Debug, Default)]
 pub struct DiscordFilter {
     domains: HashSet<String>,
+    #[allow(dead_code)]
     cidrs: Vec<String>,
 }
 
