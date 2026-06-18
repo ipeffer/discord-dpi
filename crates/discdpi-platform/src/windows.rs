@@ -1,9 +1,10 @@
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use discdpi_filter::{find_windivert_dir, windivert_filter, windivert_files_present};
 use windivert::layer::NetworkLayer;
+use windivert::prelude::WinDivertShutdownMode;
 use windivert::WinDivert;
 
 use super::CaptureBackend;
@@ -37,28 +38,49 @@ impl WindowsBackend {
         let handle = WinDivert::<NetworkLayer>::network(&self.filter, 0, Default::default())
             .map_err(|error| anyhow::anyhow!("failed to open WinDivert handle: {error}"))?;
 
+        let handle = Arc::new(Mutex::new(handle));
         let mut stats = CaptureStats::default();
         let mut buffer = [0u8; 65_535];
         let running = Arc::new(AtomicBool::new(true));
         let stop_flag = Arc::clone(&running);
+        let shutdown_handle = Arc::clone(&handle);
 
         ctrlc::set_handler(move || {
             tracing::info!("shutdown requested");
             stop_flag.store(false, Ordering::SeqCst);
+            if let Ok(mut guard) = shutdown_handle.lock() {
+                if let Err(error) = guard.shutdown(WinDivertShutdownMode::Recv) {
+                    tracing::warn!(?error, "failed to shutdown WinDivert recv queue");
+                }
+            }
         })
         .map_err(|error| anyhow::anyhow!("failed to install Ctrl+C handler: {error}"))?;
 
         tracing::info!("capture loop started; press Ctrl+C to stop");
 
         while running.load(Ordering::SeqCst) {
-            match handle.recv(Some(&mut buffer)) {
+            let packet = {
+                let guard = handle
+                    .lock()
+                    .map_err(|_| anyhow::anyhow!("WinDivert handle lock poisoned"))?;
+                guard.recv(Some(&mut buffer))
+            };
+
+            match packet {
                 Ok(packet) => {
                     stats.received += 1;
                     if stats.received.is_multiple_of(1_000) {
                         tracing::debug!(received = stats.received, sent = stats.sent, "capture progress");
                     }
 
-                    match handle.send(&packet) {
+                    let send_result = {
+                        let guard = handle
+                            .lock()
+                            .map_err(|_| anyhow::anyhow!("WinDivert handle lock poisoned"))?;
+                        guard.send(&packet)
+                    };
+
+                    match send_result {
                         Ok(_) => stats.sent += 1,
                         Err(error) => {
                             stats.errors += 1;
