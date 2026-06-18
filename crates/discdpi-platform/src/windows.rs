@@ -1,10 +1,13 @@
+use std::borrow::Cow;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
-use discdpi_filter::{find_windivert_dir, windivert_filter, windivert_files_present};
+use discdpi_core::{DesyncEngine, ProcessOutcome, Profile};
+use discdpi_filter::{find_windivert_dir, windivert_filter, windivert_files_present, DiscordFilter};
 use windivert::layer::NetworkLayer;
-use windivert::prelude::WinDivertShutdownMode;
+use windivert::packet::WinDivertPacket;
+use windivert::prelude::{ChecksumFlags, WinDivertShutdownMode};
 use windivert::WinDivert;
 
 use super::CaptureBackend;
@@ -14,17 +17,28 @@ pub struct CaptureStats {
     pub received: u64,
     pub sent: u64,
     pub errors: u64,
+    pub desynced: u64,
 }
 
 pub struct WindowsBackend {
     filter: String,
+    engine: DesyncEngine,
+    discord_filter: DiscordFilter,
 }
 
 impl WindowsBackend {
-    pub fn new() -> anyhow::Result<Self> {
+    pub fn with_profile(profile: &Profile, discord_filter: DiscordFilter) -> anyhow::Result<Self> {
         configure_windivert_runtime()?;
+
+        let engine = profile
+            .tcp_stage()
+            .map(DesyncEngine::from_tcp_stage)
+            .unwrap_or_else(DesyncEngine::inactive);
+
         Ok(Self {
             filter: windivert_filter(),
+            engine,
+            discord_filter,
         })
     }
 
@@ -32,8 +46,12 @@ impl WindowsBackend {
         &self.filter
     }
 
-    pub fn run_passthrough(&mut self) -> anyhow::Result<CaptureStats> {
-        tracing::info!(filter = %self.filter, "opening WinDivert handle");
+    pub fn run(&mut self) -> anyhow::Result<CaptureStats> {
+        tracing::info!(
+            filter = %self.filter,
+            desync_active = self.engine.is_active(),
+            "opening WinDivert handle"
+        );
 
         let handle = WinDivert::<NetworkLayer>::network(&self.filter, 0, Default::default())
             .map_err(|error| anyhow::anyhow!("failed to open WinDivert handle: {error}"))?;
@@ -70,18 +88,32 @@ impl WindowsBackend {
                 Ok(packet) => {
                     stats.received += 1;
                     if stats.received.is_multiple_of(1_000) {
-                        tracing::debug!(received = stats.received, sent = stats.sent, "capture progress");
+                        tracing::debug!(
+                            received = stats.received,
+                            sent = stats.sent,
+                            desynced = stats.desynced,
+                            "capture progress"
+                        );
                     }
+
+                    let outcome = self
+                        .engine
+                        .process(packet.data.as_ref(), &self.discord_filter);
 
                     let send_result = {
                         let guard = handle
                             .lock()
                             .map_err(|_| anyhow::anyhow!("WinDivert handle lock poisoned"))?;
-                        guard.send(&packet)
+                        send_outcome(&guard, &packet, outcome)
                     };
 
                     match send_result {
-                        Ok(_) => stats.sent += 1,
+                        Ok((sent, desynced)) => {
+                            stats.sent += sent as u64;
+                            if desynced {
+                                stats.desynced += 1;
+                            }
+                        }
                         Err(error) => {
                             stats.errors += 1;
                             tracing::warn!(?error, "failed to reinject packet");
@@ -100,11 +132,41 @@ impl WindowsBackend {
         tracing::info!(
             received = stats.received,
             sent = stats.sent,
+            desynced = stats.desynced,
             errors = stats.errors,
             "capture loop stopped"
         );
 
         Ok(stats)
+    }
+
+    /// Backward-compatible alias for phase 1 naming.
+    pub fn run_passthrough(&mut self) -> anyhow::Result<CaptureStats> {
+        self.run()
+    }
+}
+
+fn send_outcome(
+    handle: &WinDivert<NetworkLayer>,
+    template: &WinDivertPacket<'_, NetworkLayer>,
+    outcome: ProcessOutcome,
+) -> Result<(u32, bool), windivert::error::WinDivertError> {
+    match outcome {
+        ProcessOutcome::Passthrough => {
+            handle.send(template)?;
+            Ok((1, false))
+        }
+        ProcessOutcome::Modified(packets) => {
+            let mut sent = 0u32;
+            for bytes in packets {
+                let mut packet = template.clone().into_owned();
+                packet.data = Cow::Owned(bytes);
+                packet.recalculate_checksums(ChecksumFlags::new())?;
+                handle.send(&packet)?;
+                sent += 1;
+            }
+            Ok((sent, true))
+        }
     }
 }
 
@@ -194,6 +256,8 @@ mod tests {
     fn windivert_filter_is_non_empty() {
         let backend = WindowsBackend {
             filter: windivert_filter(),
+            engine: DesyncEngine::inactive(),
+            discord_filter: DiscordFilter::default(),
         };
         assert!(!backend.filter().is_empty());
     }

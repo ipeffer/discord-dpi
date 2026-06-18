@@ -66,3 +66,17 @@ fn read_lines(path: &Path) -> anyhow::Result<Vec<String>> {
         .map(str::to_owned)
         .collect())
 }
+
+impl discdpi_core::DesyncTargetFilter for DiscordFilter {
+    fn matches_tls(&self, dst_port: u16, sni: Option<&str>, is_client_hello: bool) -> bool {
+        if !self.matches_port(dst_port) {
+            return false;
+        }
+
+        if let Some(host) = sni {
+            return self.matches_domain(host);
+        }
+
+        is_client_hello && dst_port == 443
+    }
+}

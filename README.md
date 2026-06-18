@@ -4,10 +4,10 @@ Open-source DPI bypass tool focused **only on Discord** for Windows. Alternative
 
 ## Status
 
-Phase 1: WinDivert passthrough capture loop for Discord-related ports.
+Phase 2: TCP TLS desync for Discord (`fake` + `multisplit` on ClientHello).
 
 - `discdpi check` — prerequisites (admin, WinDivert files, profile)
-- `discdpi run` — capture and reinject packets (no desync yet)
+- `discdpi run` — capture Discord traffic and apply TLS desync
 
 ## Requirements
 

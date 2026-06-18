@@ -5,7 +5,12 @@ description = "Base strategy for Discord TLS gateway and voice UDP"
 [[stages]]
 protocol = "tcp"
 ports = ["443"]
-desync = ["multisplit", "fake"]
+desync = ["fake", "multisplit"]
+
+[stages.desync_params]
+split_pos = 1
+fake_ttl = 2
+fake_repeats = 3
 
 [[stages]]
 protocol = "udp"

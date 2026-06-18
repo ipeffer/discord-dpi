@@ -20,6 +20,40 @@ pub struct Stage {
     pub ports: Vec<String>,
     #[serde(default)]
     pub desync: Vec<DesyncMethod>,
+    #[serde(default)]
+    pub desync_params: Option<DesyncParams>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct DesyncParams {
+    #[serde(default = "default_split_pos")]
+    pub split_pos: usize,
+    #[serde(default = "default_fake_ttl")]
+    pub fake_ttl: u8,
+    #[serde(default = "default_fake_repeats")]
+    pub fake_repeats: u8,
+}
+
+fn default_split_pos() -> usize {
+    1
+}
+
+fn default_fake_ttl() -> u8 {
+    2
+}
+
+fn default_fake_repeats() -> u8 {
+    3
+}
+
+impl Default for DesyncParams {
+    fn default() -> Self {
+        Self {
+            split_pos: default_split_pos(),
+            fake_ttl: default_fake_ttl(),
+            fake_repeats: default_fake_repeats(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
@@ -34,6 +68,10 @@ pub enum DesyncMethod {
 impl Profile {
     pub fn from_toml(input: &str) -> anyhow::Result<Self> {
         Ok(toml::from_str(input)?)
+    }
+
+    pub fn tcp_stage(&self) -> Option<&Stage> {
+        self.stages.iter().find(|stage| stage.protocol == "tcp")
     }
 }
 

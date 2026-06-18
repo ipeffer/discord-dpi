@@ -20,7 +20,7 @@ enum Command {
         #[arg(long, default_value = "profiles/default.toml")]
         profile: PathBuf,
     },
-    /// Start WinDivert capture loop (passthrough phase)
+    /// Start WinDivert capture with TLS desync for Discord
     Run {
         #[arg(long, default_value = "profiles/default.toml")]
         profile: PathBuf,
@@ -54,6 +54,14 @@ fn run_check(profile_path: &PathBuf) -> anyhow::Result<()> {
     let profile = Profile::from_toml(&profile_toml)?;
     tracing::info!(profile = %profile.name.id, stages = profile.stages.len(), "strategy profile");
 
+    if let Some(tcp) = profile.tcp_stage() {
+        tracing::info!(
+            protocol = %tcp.protocol,
+            methods = ?tcp.desync,
+            "tcp desync stage"
+        );
+    }
+
     let filter = DiscordFilter::load_from_dir(PathBuf::from("lists").as_path())?;
     tracing::info!(
         discord_com = filter.matches_domain("discord.com"),
@@ -79,19 +87,20 @@ fn run_capture(profile_path: &PathBuf) -> anyhow::Result<()> {
 
     let profile_toml = std::fs::read_to_string(profile_path)?;
     let profile = Profile::from_toml(&profile_toml)?;
-    let _filter = DiscordFilter::load_from_dir(PathBuf::from("lists").as_path())?;
+    let filter = DiscordFilter::load_from_dir(PathBuf::from("lists").as_path())?;
 
-    let mut backend = WindowsBackend::new()?;
+    let mut backend = WindowsBackend::with_profile(&profile, filter)?;
     tracing::info!(
         profile = %profile.name.id,
         backend = backend.name(),
-        "starting passthrough capture"
+        "starting capture with TLS desync"
     );
 
-    let stats = backend.run_passthrough()?;
+    let stats = backend.run()?;
     tracing::info!(
         received = stats.received,
         sent = stats.sent,
+        desynced = stats.desynced,
         errors = stats.errors,
         "session finished"
     );

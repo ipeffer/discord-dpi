@@ -16,6 +16,7 @@ pub struct CaptureStats {
     pub received: u64,
     pub sent: u64,
     pub errors: u64,
+    pub desynced: u64,
 }
 
 #[cfg(not(windows))]
@@ -23,7 +24,15 @@ pub struct WindowsBackend;
 
 #[cfg(not(windows))]
 impl WindowsBackend {
+    pub fn with_profile(_profile: &discdpi_core::Profile, _filter: discdpi_filter::DiscordFilter) -> anyhow::Result<Self> {
+        anyhow::bail!("discord-dpi capture is only supported on Windows")
+    }
+
     pub fn new() -> anyhow::Result<Self> {
+        anyhow::bail!("discord-dpi capture is only supported on Windows")
+    }
+
+    pub fn run(&mut self) -> anyhow::Result<CaptureStats> {
         anyhow::bail!("discord-dpi capture is only supported on Windows")
     }
 
