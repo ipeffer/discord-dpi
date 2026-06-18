@@ -11,8 +11,9 @@ path = "src/main.rs"
 
 [dependencies]
 anyhow.workspace = true
+clap.workspace = true
 discdpi-core = { path = "../discdpi-core" }
 discdpi-filter = { path = "../discdpi-filter" }
 discdpi-platform = { path = "../discdpi-platform" }
 tracing.workspace = true
-tracing-subscriber.workspace = true
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }

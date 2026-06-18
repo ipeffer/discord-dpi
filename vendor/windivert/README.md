@@ -1,6 +1,16 @@
-# Placeholder for vendored WinDivert 2.2 files:
-# - WinDivert.dll
-# - WinDivert64.sys
-#
-# Download from https://github.com/basil00/Divert/releases
-# Record SHA256 hashes in THIRD_PARTY_LICENSES.md
+# WinDivert runtime (LGPL-3.0)
+
+Download with:
+
+```powershell
+.\scripts\setup-windivert.ps1
+```
+
+Expected files in `x64/`:
+
+| File | SHA256 |
+|------|--------|
+| WinDivert.dll | run `Get-FileHash WinDivert.dll` after download |
+| WinDivert64.sys | run `Get-FileHash WinDivert64.sys` after download |
+
+Source: https://github.com/basil00/WinDivert/releases/tag/v2.2.2

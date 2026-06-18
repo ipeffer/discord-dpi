@@ -1,8 +1,14 @@
 //! Filters network traffic to Discord-related destinations only.
 
+mod windivert;
+
 use std::collections::HashSet;
 use std::net::IpAddr;
 use std::path::Path;
+
+pub use windivert::{
+    find_windivert_dir, windivert_files_present, windivert_filter, windivert_search_paths,
+};
 
 #[derive(Debug, Default)]
 pub struct DiscordFilter {

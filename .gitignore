@@ -5,8 +5,10 @@ Cargo.lock
 *.exe
 *.dll
 *.sys
-/vendor/windivert/*.dll
-/vendor/windivert/*.sys
+/vendor/windivert/x64/*.dll
+/vendor/windivert/x64/*.sys
+/vendor/windivert/x64/*.lib
+!/vendor/windivert/README.md
 .DS_Store
 Thumbs.db
 *.log

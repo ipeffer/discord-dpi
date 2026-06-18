@@ -4,7 +4,46 @@ Open-source DPI bypass tool focused **only on Discord** for Windows. Alternative
 
 ## Status
 
-Early scaffold. The WinDivert capture loop and desync engine are not implemented yet.
+Phase 1: WinDivert passthrough capture loop for Discord-related ports.
+
+- `discdpi check` — prerequisites (admin, WinDivert files, profile)
+- `discdpi run` — capture and reinject packets (no desync yet)
+
+## Requirements
+
+- Windows 10/11 (64-bit)
+- Administrator privileges (WinDivert)
+- Secure DNS (DoH) enabled in OS or browser
+- [Rust](https://rustup.rs/) stable + Visual Studio Build Tools (C++)
+
+## Setup
+
+```powershell
+git clone https://github.com/ipeffer/discord-dpi.git
+cd discord-dpi
+.\scripts\setup-windivert.ps1
+cargo build --release -p discdpi-cli
+```
+
+See [docs/BUILD.md](docs/BUILD.md) for detailed build instructions.
+
+## Usage
+
+Run from repository root **as administrator**:
+
+```powershell
+cargo run -p discdpi-cli -- check
+cargo run -p discdpi-cli -- run
+```
+
+Release binary:
+
+```powershell
+.\target\release\discdpi.exe check
+.\target\release\discdpi.exe run
+```
+
+Stop capture with `Ctrl+C`.
 
 ## Goals
 
@@ -13,25 +52,6 @@ Early scaffold. The WinDivert capture loop and desync engine are not implemented
 - Voice chat support (UDP 19294–19344, 50000–50100)
 - TOML strategy profiles instead of dozens of `.bat` files
 - Built-in strategy probe for your ISP
-
-## Requirements
-
-- Windows 10/11 (64-bit)
-- Administrator privileges (WinDivert)
-- Secure DNS (DoH) enabled in OS or browser
-
-## Build
-
-```powershell
-cargo build --release
-cargo test
-```
-
-Run from repository root:
-
-```powershell
-cargo run -p discdpi-cli
-```
 
 ## Project layout
 
@@ -43,7 +63,8 @@ crates/
   discdpi-cli/       # CLI entrypoint
 lists/               # Discord domain/IP lists
 profiles/            # TOML strategy profiles
-vendor/windivert/    # WinDivert binaries (add manually for now)
+vendor/windivert/    # WinDivert binaries (via setup script)
+scripts/             # setup-windivert.ps1
 ```
 
 ## Legal
@@ -52,7 +73,7 @@ This project is for circumventing network censorship in jurisdictions where that
 
 ## License
 
-MIT — see [LICENSE](LICENSE). WinDivert is LGPL; add `THIRD_PARTY_LICENSES.md` when vendored.
+MIT — see [LICENSE](LICENSE). WinDivert is LGPL-3.0.
 
 ## Related projects
 

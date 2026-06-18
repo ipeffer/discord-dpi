@@ -12,5 +12,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - name: Install WinDivert
+        shell: pwsh
+        run: ./scripts/setup-windivert.ps1
       - run: cargo test --workspace
       - run: cargo build --release -p discdpi-cli

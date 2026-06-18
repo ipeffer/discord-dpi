@@ -7,8 +7,10 @@ license.workspace = true
 
 [dependencies]
 anyhow.workspace = true
+discdpi-filter = { path = "../discdpi-filter" }
 thiserror.workspace = true
 tracing.workspace = true
 
 [target.'cfg(windows)'.dependencies]
-# windivert = "0.6"  # enable when WinDivert is vendored
+ctrlc.workspace = true
+windivert.workspace = true

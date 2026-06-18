@@ -11,13 +11,16 @@ members = [
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
-repository = "https://github.com/OWNER/discord-dpi"
+repository = "https://github.com/ipeffer/discord-dpi"
 rust-version = "1.75"
 
 [workspace.dependencies]
 anyhow = "1"
-thiserror = "2"
+clap = { version = "4", features = ["derive"] }
+ctrlc = "3"
 serde = { version = "1", features = ["derive"] }
+thiserror = "2"
 toml = "0.8"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+windivert = "0.6"
