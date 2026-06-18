@@ -128,14 +128,6 @@ pub fn build_ipv4_tcp_packet(
     packet
 }
 
-pub fn set_ipv4_ttl(packet: &mut [u8], ttl: u8) {
-    if packet.len() >= 9 && packet[0] >> 4 == 4 {
-        packet[8] = ttl;
-        packet[10] = 0;
-        packet[11] = 0;
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

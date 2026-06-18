@@ -7,7 +7,7 @@ use discdpi_core::{DesyncEngine, ProcessOutcome, Profile};
 use discdpi_filter::{find_windivert_dir, windivert_filter, windivert_files_present, DiscordFilter};
 use windivert::layer::NetworkLayer;
 use windivert::packet::WinDivertPacket;
-use windivert::prelude::{ChecksumFlags, WinDivertShutdownMode};
+use windivert::prelude::WinDivertShutdownMode;
 use windivert::WinDivert;
 
 use super::CaptureBackend;
@@ -161,7 +161,6 @@ fn send_outcome(
             for bytes in packets {
                 let mut packet = template.clone().into_owned();
                 packet.data = Cow::Owned(bytes);
-                packet.recalculate_checksums(ChecksumFlags::new())?;
                 handle.send(&packet)?;
                 sent += 1;
             }

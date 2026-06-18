@@ -1,6 +1,6 @@
 //! TCP TLS desync strategies (fake, multisplit).
 
-use crate::packet::{build_ipv4_tcp_packet, set_ipv4_ttl, Ipv4TcpInfo};
+use crate::packet::{build_ipv4_tcp_packet, Ipv4TcpInfo};
 use crate::strategy::{DesyncMethod, DesyncParams, Stage};
 use crate::tls;
 
@@ -58,9 +58,9 @@ impl DesyncEngine {
 
         if self.methods.contains(&DesyncMethod::Fake) {
             for _ in 0..self.params.fake_repeats {
-                let mut fake = packet.to_vec();
-                set_ipv4_ttl(&mut fake, self.params.fake_ttl);
-                out.push(fake);
+                if let Some(fake) = fake_packet(packet, self.params.fake_ttl) {
+                    out.push(fake);
+                }
             }
         }
 
@@ -88,6 +88,22 @@ fn should_desync(info: &Ipv4TcpInfo<'_>, payload: &[u8], filter: &impl DesyncTar
         sni.as_deref(),
         tls::is_tls_client_hello(payload),
     )
+}
+
+fn fake_packet(packet: &[u8], ttl: u8) -> Option<Vec<u8>> {
+    let info = Ipv4TcpInfo::parse(packet)?;
+    Some(build_ipv4_tcp_packet(
+        info.src_ip(),
+        info.dst_ip(),
+        ttl,
+        info.src_port(),
+        info.dst_port(),
+        info.sequence(),
+        info.acknowledgment(),
+        info.has_psh(),
+        info.has_ack(),
+        info.payload(),
+    ))
 }
 
 fn multisplit(info: &Ipv4TcpInfo<'_>, payload: &[u8], split_pos: usize) -> Option<Vec<Vec<u8>>> {
